@@ -1,6 +1,7 @@
 package numeroaletras
 
 import (
+	"math"
 	"strings"
 	"testing"
 )
@@ -588,5 +589,15 @@ func TestToString(t *testing.T) {
 				t.Errorf("ToString(%v, %v, '%v', '%v') = %v; want %v", tt.number, tt.decimals, tt.unit, tt.subUnit, str, tt.expected)
 			}
 		})
+	}
+}
+
+func TestToWords_ErrorOnInvalidWholeNumber(t *testing.T) {
+	n := NewNumeroALetras()
+
+	// Caso inválido: parte entera no numérica (simulado con entrada manipulada)
+	_, err := n.ToWords(math.NaN(), 2)
+	if err == nil {
+		t.Fatal("expected error for NaN input, got nil")
 	}
 }

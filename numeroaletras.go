@@ -7,7 +7,6 @@ import (
 	"strings"
 )
 
-// NumeroALetras is a struct that provides methods to convert numbers to their Spanish word representations.
 type NumeroALetras struct {
 	unidades           []string
 	decenas            []string
@@ -17,267 +16,190 @@ type NumeroALetras struct {
 	apocope            bool
 }
 
-// NewNumeroALetras initializes and returns a new instance of NumeroALetras with default values.
 func NewNumeroALetras() *NumeroALetras {
 	return &NumeroALetras{
-		unidades: []string{
-			"", "UNO ", "DOS ", "TRES ", "CUATRO ", "CINCO ",
-			"SEIS ", "SIETE ", "OCHO ", "NUEVE ", "DIEZ ",
-			"ONCE ", "DOCE ", "TRECE ", "CATORCE ", "QUINCE ",
-			"DIECISÉIS ", "DIECISIETE ", "DIECIOCHO ", "DIECINUEVE ", "VEINTE ",
-		},
-		decenas: []string{
-			"VEINTI", "TREINTA ", "CUARENTA ", "CINCUENTA ",
-			"SESENTA ", "SETENTA ", "OCHENTA ", "NOVENTA ", "CIEN ",
-		},
-		centenas: []string{
-			"CIENTO ", "DOSCIENTOS ", "TRESCIENTOS ", "CUATROCIENTOS ",
-			"QUINIENTOS ", "SEISCIENTOS ", "SETECIENTOS ", "OCHOCIENTOS ",
-			"NOVECIENTOS ",
-		},
-		acentosExcepciones: map[string]string{
-			"VEINTIDOS":  "VEINTIDÓS ",
-			"VEINTITRES": "VEINTITRÉS ",
-			"VEINTISEIS": "VEINTISÉIS ",
-		},
-		Conector: "CON",
-		apocope:  false,
+		unidades:           []string{"", "UNO ", "DOS ", "TRES ", "CUATRO ", "CINCO ", "SEIS ", "SIETE ", "OCHO ", "NUEVE ", "DIEZ ", "ONCE ", "DOCE ", "TRECE ", "CATORCE ", "QUINCE ", "DIECISÉIS ", "DIECISIETE ", "DIECIOCHO ", "DIECINUEVE ", "VEINTE "},
+		decenas:            []string{"VEINTI", "TREINTA ", "CUARENTA ", "CINCUENTA ", "SESENTA ", "SETENTA ", "OCHENTA ", "NOVENTA ", "CIEN "},
+		centenas:           []string{"CIENTO ", "DOSCIENTOS ", "TRESCIENTOS ", "CUATROCIENTOS ", "QUINIENTOS ", "SEISCIENTOS ", "SETECIENTOS ", "OCHOCIENTOS ", "NOVECIENTOS "},
+		acentosExcepciones: map[string]string{"VEINTIDOS": "VEINTIDÓS ", "VEINTITRES": "VEINTITRÉS ", "VEINTISEIS": "VEINTISÉIS "},
+		Conector:           "CON",
+		apocope:            false,
 	}
 }
+
 func (n *NumeroALetras) redondear(numero float64, decimales int) float64 {
 	factor := math.Pow(10, float64(decimales))
 	return math.Round(numero*factor) / factor
 }
 
-// ToWords converts a numeric value to its word representation.
-// number: The number to be converted.
-// decimals: The number of decimal places to consider. Default is 2.
 func (n *NumeroALetras) ToWords(number float64, decimals int) (string, error) {
 	number = n.redondear(number, decimals)
 	numberStr := fmt.Sprintf("%.*f", decimals, number)
+	parts := strings.Split(numberStr, ".")
 
-	splitNumber := strings.Split(numberStr, ".")
-
-	wholePart, err := n.wholeNumber(splitNumber[0])
+	whole, err := n.wholeNumber(parts[0])
 	if err != nil {
 		return "", err
 	}
 
-	var decimalPart string
-	if len(splitNumber) > 1 && splitNumber[1] != "" {
-		decimalInt, err := strconv.Atoi(splitNumber[1])
+	var decimal string
+	if len(parts) > 1 && parts[1] != "" {
+		decimalInt, err := strconv.Atoi(parts[1])
 		if err != nil {
 			return "", err
 		}
-		decimalPart = n.convertNumber(decimalInt)
+		decimal = n.convertNumber(decimalInt)
 	}
 
-	return n.concat([]string{wholePart, decimalPart}), nil
-}
-func IsZero(s string) bool {
-	if len(s) == 0 {
-		return true
-	}
-	for _, c := range s {
-		if c != '0' {
-			return false
-		}
-	}
-	return true
+	return n.concat([]string{whole, decimal}), nil
 }
 
-// ToMoney converts a numeric value to its money representation in words.
-// number: The numeric value to be converted.
-// decimals: The number of decimal places to consider. Default is 2.
-// currency: The currency to append to the whole number part.
-// cents: The currency to append to the decimal part.
 func (n *NumeroALetras) ToMoney(number float64, decimals int, currency, cents string) (string, error) {
-
 	numberStr := fmt.Sprintf("%.*f", decimals, number)
-	splitNumber := strings.Split(numberStr, ".")
+	parts := strings.Split(numberStr, ".")
 
-	wholePart, err := n.wholeNumber(splitNumber[0])
+	whole, err := n.wholeNumber(parts[0])
 	if err != nil {
 		return "", err
 	}
-	wholePart = strings.TrimSpace(wholePart) + " " + strings.ToUpper(currency)
+	whole = strings.TrimSpace(whole) + " " + strings.ToUpper(currency)
 
-	var decimalPart string
-	if len(splitNumber) > 1 && splitNumber[1] != "" && !IsZero(splitNumber[1]) {
-		decimalInt, err := strconv.Atoi(splitNumber[1])
+	var decimal string
+	if len(parts) > 1 && parts[1] != "" && !isZero(parts[1]) {
+		decimalInt, err := strconv.Atoi(parts[1])
 		if err != nil {
 			return "", err
 		}
-		decimalPart = n.convertNumber(decimalInt) + " " + strings.ToUpper(cents)
+		decimal = n.convertNumber(decimalInt) + " " + strings.ToUpper(cents)
 	}
 
-	return n.concat([]string{wholePart, decimalPart}), nil
+	return n.concat([]string{whole, decimal}), nil
 }
 
-// ToString converts a number to its string representation with specified whole and decimal strings.
-// number: The number to be converted.
-// decimals: The number of decimal places to include.
-// wholeStr: The string to use for the whole number part.
-// decimalStr: The string to use for the decimal part.
 func (n *NumeroALetras) ToString(number float64, decimals int, wholeStr, decimalStr string) (string, error) {
 	return n.ToMoney(number, decimals, wholeStr, decimalStr)
 }
 
-// ToInvoice converts a number to its invoice representation in words.
-// number: The number to be converted.
-// decimals: The number of decimal places to consider. Default is 2.
-// currency: The currency to append at the end.
 func (n *NumeroALetras) ToInvoice(number float64, decimals int, currency string) (string, error) {
-
 	numberStr := fmt.Sprintf("%.*f", decimals, number)
-	splitNumber := strings.Split(numberStr, ".")
+	parts := strings.Split(numberStr, ".")
 
-	wholeNumber, err := n.wholeNumber(splitNumber[0])
+	whole, err := n.wholeNumber(parts[0])
 	if err != nil {
 		return "", err
 	}
 
-	var decimalPart string
-	if len(splitNumber) > 1 && splitNumber[1] != "" {
-		decimalPart = fmt.Sprintf("%02d/100 ", mustAtoi(splitNumber[1]))
-	} else {
-		decimalPart = "00/100 "
+	decimal := "00/100 "
+	if len(parts) > 1 && parts[1] != "" {
+		d := mustAtoi(parts[1])
+		decimal = fmt.Sprintf("%02d/100 ", d)
 	}
 
-	invoice := fmt.Sprintf("%s %s", n.concat([]string{wholeNumber, decimalPart}), strings.ToUpper(currency))
-	return invoice, nil
+	return fmt.Sprintf("%s %s", n.concat([]string{whole, decimal}), strings.ToUpper(currency)), nil
 }
 
-// checkApocope modifies the 'unidades' array if Apocope is set to true.
 func (n *NumeroALetras) UseApocope(value bool) {
 	if len(n.unidades) > 1 {
-		if value {
-			n.unidades[1] = "UN "
-
-		} else {
-			n.unidades[1] = "UNO "
-		}
+		n.unidades[1] = map[bool]string{true: "UN ", false: "UNO "}[value]
 		n.apocope = value
 	}
 }
 
-// wholeNumber converts the whole number part to words.
 func (n *NumeroALetras) wholeNumber(number string) (string, error) {
 	if number == "0" {
 		return "CERO ", nil
 	}
-	numInt, err := strconv.Atoi(number)
+	num, err := strconv.Atoi(number)
 	if err != nil {
 		return "", err
 	}
-	return n.convertNumber(numInt), nil
+	return n.convertNumber(num), nil
 }
 
-// concat joins the split number parts with the connector.
-func (n *NumeroALetras) concat(splitNumber []string) string {
-	var parts []string
-	for _, part := range splitNumber {
-		part = strings.TrimSpace(part)
-		if part != "" {
-			parts = append(parts, part)
+func (n *NumeroALetras) concat(parts []string) string {
+	var clean []string
+	for _, part := range parts {
+		if p := strings.TrimSpace(part); p != "" {
+			clean = append(clean, p)
 		}
 	}
-	conector := strings.ToUpper(n.Conector)
-	return strings.Join(parts, fmt.Sprintf(" %s ", conector))
+	var results = strings.Join(clean, fmt.Sprintf(" %s ", strings.ToUpper(n.Conector)))
+	return strings.ReplaceAll(results, "  ", " ")
 }
 
-// convertNumber converts a numeric value into its Spanish words representation.
-func (n *NumeroALetras) convertNumber(number int) string {
-	if number < 0 || number > 999999999 {
+func (n *NumeroALetras) convertNumber(num int) string {
+	if num < 0 || num > 999999999 {
 		return "Número fuera de rango"
 	}
 
-	converted := ""
+	s := fmt.Sprintf("%09d", num)
+	mill, _ := strconv.Atoi(s[0:3])
+	thou, _ := strconv.Atoi(s[3:6])
+	hund, _ := strconv.Atoi(s[6:9])
 
-	numberStrFill := fmt.Sprintf("%09d", number)
-	millonesStr := numberStrFill[0:3]
-	milesStr := numberStrFill[3:6]
-	cientosStr := numberStrFill[6:9]
-
-	millones, _ := strconv.Atoi(millonesStr)
-	miles, _ := strconv.Atoi(milesStr)
-	cientos, _ := strconv.Atoi(cientosStr)
-
-	if millones > 0 {
-		if millones == 1 {
-			converted += "UN MILLÓN "
+	var res strings.Builder
+	if mill > 0 {
+		if mill == 1 {
+			res.WriteString("UN MILLÓN ")
 		} else {
-			converted += fmt.Sprintf("%s MILLONES ", n.convertGroup(millonesStr))
+			res.WriteString(fmt.Sprintf("%s MILLONES ", n.convertGroup(s[0:3])))
 		}
 	}
-
-	if miles > 0 {
-		if miles == 1 {
-			converted += "MIL "
+	if thou > 0 {
+		if thou == 1 {
+			res.WriteString("MIL ")
 		} else {
-			converted += fmt.Sprintf("%s MIL ", n.convertGroup(milesStr))
+			res.WriteString(fmt.Sprintf("%s MIL ", n.convertGroup(s[3:6])))
 		}
 	}
-
-	if cientos > 0 {
-		if cientos == 1 {
-			if n.apocope {
-				converted += "UN "
-			} else {
-				converted += "UNO "
-			}
+	if hund > 0 {
+		if hund == 1 {
+			res.WriteString(map[bool]string{true: "UN ", false: "UNO "}[n.apocope])
 		} else {
-			converted += fmt.Sprintf("%s ", n.convertGroup(cientosStr))
+			res.WriteString(fmt.Sprintf("%s ", n.convertGroup(s[6:9])))
 		}
 	}
-
-	return strings.TrimSpace(converted)
+	return strings.TrimSpace(res.String())
 }
 
-// convertGroup converts a three-digit group into words.
 func (n *NumeroALetras) convertGroup(group string) string {
-	output := ""
-
-	// Handle hundreds
 	if group == "100" {
-		output = "CIEN "
-	} else if group[0] != '0' {
-		hundredsIndex := int(group[0]-'0') - 1
-		if hundredsIndex >= 0 && hundredsIndex < len(n.centenas) {
-			output = n.centenas[hundredsIndex]
-		}
+		return "CIEN "
 	}
-	var unidades string
-	// Handle tens and units
-	k, _ := strconv.Atoi(group[1:])
-	if k <= 20 {
-		if k >= 0 && k < len(n.unidades) {
-			unidades = n.unidades[k]
-		}
+
+	h := int(group[0] - '0')
+	t := int(group[1] - '0')
+	u := int(group[2] - '0')
+	lastTwo := t*10 + u
+
+	var res strings.Builder
+	if h > 0 {
+		res.WriteString(n.centenas[h-1])
+	}
+	var unit string
+	if lastTwo <= 20 {
+		unit = n.unidades[lastTwo]
 	} else {
-		tensIndex := (k / 10) - 2
-		unitIndex := k % 10
-		if tensIndex >= 0 && tensIndex < len(n.decenas) {
-			if k > 30 && unitIndex != 0 {
-				unidades = fmt.Sprintf("%sY %s", n.decenas[tensIndex], n.unidades[unitIndex])
+		if t-2 >= 0 && t-2 < len(n.decenas) {
+			if lastTwo > 30 && u != 0 {
+				unit = fmt.Sprintf("%sY %s", n.decenas[t-2], n.unidades[u])
 			} else {
-				unidades = fmt.Sprintf("%s%s", n.decenas[tensIndex], n.unidades[unitIndex])
+				unit = fmt.Sprintf("%s%s", n.decenas[t-2], n.unidades[u])
 			}
 		}
 	}
-	// Handle accent exceptions
-	trimmedUnidades := strings.TrimSpace(unidades)
-	if val, exists := n.acentosExcepciones[trimmedUnidades]; exists {
-		trimmedUnidades = val
+	unit = strings.TrimSpace(unit)
+	if val, ok := n.acentosExcepciones[strings.ToUpper(unit)]; ok {
+		unit = val
 	}
-	if trimmedUnidades == "" {
-		return strings.TrimSpace(output)
-	}
-	return fmt.Sprintf("%s%s", output, trimmedUnidades)
+	res.WriteString(unit)
+	return res.String()
 }
 
-// mustAtoi converts a string to an integer and panics if there's an error.
-// It's used internally where the input is guaranteed to be numeric.
+func isZero(s string) bool {
+	return strings.TrimLeft(s, "0") == ""
+}
+
 func mustAtoi(s string) int {
 	i, _ := strconv.Atoi(s)
 	return i
